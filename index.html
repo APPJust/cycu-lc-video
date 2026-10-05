@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CYCU Language Center</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23d7362b%27/%3E%3Cpath d=%27M12 9l12 7-12 7z%27 fill=%27%23f1e7d0%27/%3E%3C/svg%3E">
 <style>
 :root{
   --cream:#f1e7d0; --paper:#f7f0de; --ink:#1e1d1b; --red:#d7362b; --navy:#1b3a6b; --blue:#2f6db5;
@@ -55,6 +56,7 @@ svg{overflow:visible}.abs>svg,.fit svg{display:block}
 #ui input[type=range]{flex:1;accent-color:var(--yellow);min-width:60px}
 #ui .time{font-variant-numeric:tabular-nums;white-space:nowrap}
 body.capture #ui,body.subsonly #ui{display:none}
+#ui.idle{opacity:0;pointer-events:none} body.idle{cursor:none}
 #start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,12,.55);cursor:pointer}
 #start div{background:var(--yellow);color:#1e1d1b;font:700 22px "Segoe UI",sans-serif;padding:16px 30px;border-radius:999px;box-shadow:0 6px 0 rgba(0,0,0,.3)}
 body.capture #start,body.subsonly #start{display:none}
@@ -753,10 +755,13 @@ if (!CAPTURE) {
   function play() { if (now() >= DUR - .05) { clock = 0; aud.currentTime = 0; } playing = true; t0 = performance.now(); aud.currentTime = clock; aud.play().catch(() => { }); playB.textContent = '❚❚'; }
   function pause() { clock = now(); playing = false; aud.pause(); playB.textContent = '▶'; }
   playB.onclick = () => playing ? pause() : play();
-  document.getElementById('start').onclick = e => { e.currentTarget.style.display = 'none'; play(); };
+  document.getElementById('start').onclick = e => { e.currentTarget.style.display = 'none'; play(); wake(); };
   seek.oninput = () => { clock = +seek.value; aud.currentTime = clock; t0 = performance.now(); if (playing) { aud.currentTime = clock; } };
   document.getElementById('subbtn').onclick = e => { SUBS_ON = !SUBS_ON; e.currentTarget.textContent = SUBS_ON ? 'CC 雙語' : 'CC 關'; };
   document.getElementById('fs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => { });
+  const ui = document.getElementById('ui'); let idleT = 0;
+  const wake = () => { ui.classList.remove('idle'); document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (playing && !ui.matches(':hover')) { ui.classList.add('idle'); document.body.classList.add('idle'); } }, 2500); };
+  ['mousemove', 'pointerdown', 'touchstart', 'keydown'].forEach(ev => addEventListener(ev, wake, { passive: true })); playB.addEventListener('click', wake);
   addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); } });
   (function loop() {
     let t = now(); if (t >= DUR) { t = DUR - .001; if (playing) pause(); clock = DUR - .001; }
